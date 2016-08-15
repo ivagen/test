@@ -1,0 +1,40 @@
+version: '2'
+services:
+  front:
+    build: ./docker/front/
+    container_name: front
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8047:8047"
+      - "9000:9000"
+    links:
+      - redis:redis
+      - postgres:postgres
+    volumes:
+      - ./www:/var/www
+      - ./docker/sites:/etc/nginx/conf.d
+      - ./logs:/var/log/supervisor
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: docker
+      POSTGRES_USER: docker
+    volumes:
+      - ./docker/postgresql/data:/var/lib/postgresql/data
+
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  adminer:
+    build: ./docker/adminer/
+    container_name: adminer
+    ports:
+      - "4001:80"

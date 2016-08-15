@@ -1,0 +1,22 @@
+{
+  "name": "Front",
+  "version": "1.0.0",
+  "authors": [
+    "Evgeniy Ivashko <ivagen@li.ru>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "*",
+    "angular-modal-service": "*",
+    "angular-websocket": "*",
+    "bootstrap": "*",
+    "jquery": "*"
+  }
+}
