@@ -24,8 +24,6 @@ services:
     environment:
       POSTGRES_PASSWORD: docker
       POSTGRES_USER: docker
-    volumes:
-      - ./docker/postgresql/data:/var/lib/postgresql/data
 
   redis:
     image: redis
