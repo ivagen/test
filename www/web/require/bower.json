@@ -16,6 +16,7 @@
     "angular": "*",
     "angular-modal-service": "*",
     "angular-websocket": "*",
+    "angularjs-toaster": "*",
     "bootstrap": "*",
     "jquery": "*"
   }

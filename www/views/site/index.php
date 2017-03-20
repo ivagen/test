@@ -60,3 +60,5 @@ $this->title = 'List of things to rest';
         </div>
     </script>
 </div>
+
+<toaster-container toaster-options="{'time-out': 1000}"></toaster-container>

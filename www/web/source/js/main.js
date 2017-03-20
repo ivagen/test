@@ -1,4 +1,4 @@
-var app = angular.module('app', ['angularModalService', 'ngWebSocket']);
+var app = angular.module('app', ['angularModalService', 'ngWebSocket', 'toaster', 'ngAnimate']);
 
 app.factory('Rows', function ($websocket) {
     var dataStream = $websocket('ws://' + document.domain + ':8047/websocket');
@@ -30,7 +30,7 @@ app.factory('Rows', function ($websocket) {
     return methods;
 });
 
-app.factory('Actions', function ($http) {
+app.factory('Actions', function ($http, toaster) {
     return {
         get: function () {
             var data = $http({
@@ -39,6 +39,12 @@ app.factory('Actions', function ($http) {
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'}
             }).then(function successCallback(response) {
                 return response.data.rows;
+            }, function errorCallback(response) {
+                toaster.pop({
+                    type: 'error',
+                    title: 'Error',
+                    body: response.data.error
+                });
             });
 
             return data;
@@ -56,7 +62,17 @@ app.factory('Actions', function ($http) {
                 data: params,
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'}
             }).then(function successCallback(response) {
-                console.log(response);
+                toaster.pop({
+                    type: 'success',
+                    title: 'Create item',
+                    body: 'No ' + response.data.id
+                });
+            }, function errorCallback(response) {
+                toaster.pop({
+                    type: 'error',
+                    title: 'Error',
+                    body: response.data.error
+                });
             });
         },
         edit: function (id, name) {
@@ -67,21 +83,40 @@ app.factory('Actions', function ($http) {
             });
 
             $http({
-                method: 'POST',
+                method: 'PUT',
                 url: '/index.php?r=site/update&id=' + id,
                 data: params,
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'}
             }).then(function successCallback(response) {
-                console.log(response);
+                toaster.pop({
+                    type: 'success',
+                    title: 'Update item',
+                    body: 'No ' + response.data.id
+                });
+            }, function errorCallback(response) {
+                toaster.pop({
+                    type: 'error',
+                    title: 'Error',
+                    body: response.data.error
+                });
             });
         },
         remove: function (id) {
             $http({
-                method: 'POST',
+                method: 'DELETE',
                 url: '/index.php?r=site/delete&id=' + id,
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'}
             }).then(function successCallback(response) {
-                console.log(response);
+                toaster.pop({
+                    type: 'success',
+                    title: 'Delete item'
+                });
+            }, function errorCallback(response) {
+                toaster.pop({
+                    type: 'error',
+                    title: 'Error',
+                    body: response.data.error
+                });
             });
         }
     };

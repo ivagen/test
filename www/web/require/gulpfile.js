@@ -9,6 +9,8 @@ gulp.task('pack-js', function () {
         'bower_components/angular/angular.min.js',
         'bower_components/angular-modal-service/dst/angular-modal-service.min.js',
         'bower_components/angular-websocket/dist/angular-websocket.min.js',
+        'bower_components/angular-animate/angular-animate.min.js',
+        'bower_components/angularjs-toaster/toaster.min.js',
         '../source/js/main.js'
     ])
         .pipe(concat('main.js'))
@@ -19,6 +21,7 @@ gulp.task('pack-css', function () {
     return gulp.src([
         'bower_components/bootstrap/dist/css/bootstrap.min.css',
         'bower_components/bootstrap/dist/css/bootstrap-theme.min.css',
+        'bower_components/angularjs-toaster/toaster.min.css',
         '../source/css/site.css'
     ])
         .pipe(concat('style.css'))

@@ -11,7 +11,7 @@ use yii\filters\VerbFilter;
 
 class SiteController extends Controller
 {
-    public $enableCsrfValidation = FALSE;
+    public $enableCsrfValidation = false;
 
     public function behaviors()
     {
@@ -19,9 +19,9 @@ class SiteController extends Controller
             'verbs' => [
                 'class'   => VerbFilter::className(),
                 'actions' => [
-                    'delete' => ['post'],
+                    'delete' => ['delete'],
                     'create' => ['post'],
-                    'update' => ['post'],
+                    'update' => ['put'],
                 ],
             ],
         ];
@@ -51,7 +51,15 @@ class SiteController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
 
-        return $this->getItems();
+        try {
+            return $this->getItems();
+        } catch (\Exception $exception) {
+            Yii::$app->response->setStatusCode(500);
+
+            return [
+                'error' => 'Unknown error',
+            ];
+        }
     }
 
     /**
@@ -63,20 +71,30 @@ class SiteController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
 
-        $model = new Items;
+        try {
+            $model = new Items;
 
-        if ($model->load(Yii::$app->request->post()) && $model->save() && $this->getItems()) {
+            if ($model->load(Yii::$app->request->post()) && $model->save() && $this->getItems()) {
+
+                Yii::$app->response->setStatusCode(201);
+
+                return [
+                    'id' => $model->id,
+                ];
+            }
+
+            Yii::$app->response->setStatusCode(400);
 
             return [
-                'status' => 'success',
-                'id'     => $model->id,
+                'error' => $model->getFirstErrors(),
+            ];
+        } catch (\Exception $exception) {
+            Yii::$app->response->setStatusCode(500);
+
+            return [
+                'error' => 'Unknown error',
             ];
         }
-
-        return [
-            'status' => 'error',
-            'errors' => $model->getFirstError(),
-        ];
     }
 
     /**
@@ -89,20 +107,35 @@ class SiteController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
 
-        $model = $this->findModel($id);
+        try {
+            $model = $this->findModel($id);
 
-        if ($model->load(Yii::$app->request->post()) && $model->save()  && $this->getItems()) {
+            if ($model->load(Yii::$app->request->post()) && $model->save() && $this->getItems()) {
+                Yii::$app->response->setStatusCode(200);
+
+                return [
+                    'id' => $model->id,
+                ];
+            }
+
+            Yii::$app->response->setStatusCode(400);
 
             return [
-                'status' => 'success',
-                'id'     => $model->id,
+                'error' => $model->getFirstErrors(),
+            ];
+        } catch (NotFoundHttpException $exception) {
+            Yii::$app->response->setStatusCode(404);
+
+            return [
+                'error' => $exception->getMessage(),
+            ];
+        } catch (\Exception $exception) {
+            Yii::$app->response->setStatusCode(500);
+
+            return [
+                'error' => 'Unknown error',
             ];
         }
-
-        return [
-            'status' => 'error',
-            'errors' => $model->getFirstError(),
-        ];
     }
 
     /**
@@ -115,24 +148,38 @@ class SiteController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
 
-        $this->findModel($id)->delete();
-        $this->getItems();
+        try {
+            $this->findModel($id)->delete();
+            $this->getItems();
 
-        return [
-            'status' => 'success',
-        ];
+            Yii::$app->response->setStatusCode(204);
+
+            return [];
+        } catch (NotFoundHttpException $exception) {
+            Yii::$app->response->setStatusCode(404);
+
+            return [
+                'error' => $exception->getMessage(),
+            ];
+        } catch (\Exception $exception) {
+            Yii::$app->response->setStatusCode(500);
+
+            return [
+                'error' => 'Unknown error',
+            ];
+        }
     }
 
     /**
      * Finds the Items model based on its primary key value.
      *
      * @param integer $id
-     * @return Items the loaded model
-     * @throws NotFoundHttpException if the model cannot be found
+     * @return Items
+     * @throws NotFoundHttpException
      */
     protected function findModel($id)
     {
-        if (($model = Items::findOne($id)) !== NULL) {
+        if (($model = Items::findOne($id)) !== null) {
             return $model;
         } else {
             throw new NotFoundHttpException('The requested page does not exist.');
