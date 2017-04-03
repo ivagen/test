@@ -13,7 +13,7 @@
     "tests"
   ],
   "dependencies": {
-    "angular": "*",
+    "angular": "~1.6.4",
     "angular-modal-service": "*",
     "angular-websocket": "*",
     "angularjs-toaster": "*",
