@@ -4,7 +4,7 @@ services:
     container_name: front
     build: ./docker/front/
     ports:
-      - "8080:80"
+      - "80:80"
       - "8047:8047"
     links:
       - redis:redis
@@ -29,4 +29,4 @@ services:
   adminer:
     build: ./docker/adminer/
     ports:
-      - "4000:80"
+      - "4001:80"
