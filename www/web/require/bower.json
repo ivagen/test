@@ -13,11 +13,14 @@
     "tests"
   ],
   "dependencies": {
-    "angular": "~1.6.4",
-    "angular-modal-service": "*",
-    "angular-websocket": "*",
-    "angularjs-toaster": "*",
-    "bootstrap": "*",
-    "jquery": "*"
+    "angular": "1.6.4",
+    "angular-modal-service": "0.11.1",
+    "angular-websocket": "2.0.0",
+    "angularjs-toaster": "2.1.0",
+    "bootstrap": "3.3.7",
+    "jquery": "3.2.1"
+  },
+  "resolutions": {
+    "angular": "1.6.4"
   }
 }

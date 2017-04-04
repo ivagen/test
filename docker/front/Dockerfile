@@ -8,9 +8,6 @@ RUN apt-get update && apt-get install -my \
   mc \
   supervisor \
   curl \
-  wget \
-  gcc \
-  make \
   libcurl4-openssl-dev \
   libevent-dev \
   git \
