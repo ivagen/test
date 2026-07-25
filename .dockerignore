@@ -1,0 +1,32 @@
+# Keep build contexts small and reproducible: never ship secrets, host-installed
+# dependencies, generated bundles or VCS/editor state into an image layer.
+
+.git
+.gitignore
+.idea
+.vscode
+
+.env
+.env.*
+!.env.example
+
+# Dependencies are installed inside the image from the lockfiles, never copied from a host.
+www/vendor
+frontend/node_modules
+
+# Generated / transient
+www/runtime
+www/web/assets
+frontend/dist
+frontend/coverage
+frontend/test-results
+frontend/playwright-report
+frontend/.vite
+logs
+coverage
+*.log
+
+# Not needed to build or run the application
+docs
+README.md
+.github

@@ -1,1 +1,34 @@
+# Secrets and local configuration
+/.env
+/.env.local
+
+# IDE / OS
 /.idea/
+/.vscode/
+.DS_Store
+
+# PHP dependencies and transient state
+/www/vendor/
+/www/runtime/*
+!/www/runtime/.gitignore
+/www/.php-cs-fixer.cache
+/www/.phpunit.cache/
+/www/coverage/
+
+# Generated browser assets (built by the `frontend` service into www/web/assets/app)
+/www/web/assets/*
+!/www/web/assets/.gitkeep
+
+# Frontend dependencies, build output and test artefacts
+/frontend/node_modules/
+/frontend/dist/
+/frontend/coverage/
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+/frontend/.vite/
+
+# Runtime logs
+/logs/*
+!/logs/.gitignore
+*.log

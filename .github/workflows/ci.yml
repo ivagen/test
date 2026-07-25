@@ -1,0 +1,83 @@
+name: CI
+
+# Runs exactly the same checks as `make verify` locally, through the same scripts, so a
+# green local run and a green CI run mean the same thing (quickstart.md: "CI and local
+# verification MUST call the same underlying scripts where practical").
+
+on:
+  push:
+    branches: [master, main, '001-*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build, test and audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Create the environment file
+        run: |
+          cp .env.example .env
+          # A real generated secret, never the committed development placeholder.
+          {
+            echo "APP_COOKIE_VALIDATION_KEY=$(openssl rand -base64 32)"
+            echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)"
+          } >> .env
+
+      # Docker's own layer cache, so a rebuild does not repeat apk/npm work every run.
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate the Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start the stack
+        run: docker compose up -d --wait --wait-timeout 300
+
+      - name: Show service status
+        if: always()
+        run: docker compose ps
+
+      - name: Apply migrations
+        run: docker compose exec -T app php yii migrate --interactive=0
+
+      # 14 checks: Compose config, the infrastructure suites (Compose contract, scanner and
+      # configuration-validation regressions), YAML/JSON validation, the forbidden-component
+      # scan, the backend and frontend suites, end-to-end on three browsers, and both audits.
+      - name: Verify (config, backend, frontend, e2e, audits, forbidden components)
+        run: bash scripts/verify.sh
+
+      - name: Container-level acceptance (outages, SIGTERM, production mode)
+        run: bash scripts/acceptance.sh
+
+      - name: Collect service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 400
+
+      - name: Upload the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        # Project-scoped: removes only this workflow's containers and networks.
+        run: docker compose down --volumes

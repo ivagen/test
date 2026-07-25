@@ -1,0 +1,281 @@
+/*
+ * Accessible, responsive styling for the single page.
+ *
+ * Replaces the Bootstrap 3 + glyphicon bundle the Gulp/Bower pipeline used to concatenate.
+ * The page has one form, one table and one dialog, so a stylesheet is genuinely enough --
+ * pulling in a CSS framework for this would be the same mistake the 2017 build made.
+ */
+
+:root {
+  --surface: #ffffff;
+  --surface-muted: #f4f5f7;
+  --border: #d5d8dd;
+  --text: #1c1f24;
+  --text-muted: #5a6472;
+  --accent: #1b5fbe;
+  --accent-contrast: #ffffff;
+  --danger: #a4262c;
+  --success: #1d6b3f;
+  --radius: 8px;
+  --space: 1rem;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #16181d;
+    --surface-muted: #1e2128;
+    --border: #343943;
+    --text: #eceef2;
+    --text-muted: #a4adbb;
+    --accent: #6ea8fe;
+    --accent-contrast: #10131a;
+    --danger: #f08a8f;
+    --success: #77d39d;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: var(--space);
+  background: var(--surface);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.app {
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: clamp(1.4rem, 1.1rem + 1.4vw, 2rem);
+  margin: 0 0 var(--space);
+}
+
+/* Visible only to assistive technology. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- real-time status ---------------------------------------------------------------- */
+
+.status {
+  margin: 0 0 var(--space);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.status[data-state='connected'] {
+  color: var(--success);
+}
+
+/* Degraded, not broken: nothing on the page is disabled while this shows. */
+.status[data-state='disconnected'] {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* --- forms ---------------------------------------------------------------------------- */
+
+.create-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-bottom: var(--space);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 14rem;
+}
+
+label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+input[type='text'] {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  width: 100%;
+}
+
+button {
+  padding: 0.55rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font: inherit;
+  cursor: pointer;
+}
+
+button[data-action='edit'],
+button[data-action='delete'] {
+  background: var(--surface-muted);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+button[data-action='delete'] {
+  color: var(--danger);
+}
+
+button:hover {
+  filter: brightness(1.08);
+}
+
+/* Never remove the focus ring: keyboard users rely on it. */
+:where(button, input, a):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+  flex-basis: 100%;
+}
+
+.feedback {
+  margin: 0 0 var(--space);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.feedback[data-tone='success'] {
+  color: var(--success);
+}
+
+.feedback[data-tone='error'] {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* --- list ----------------------------------------------------------------------------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+thead th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.item-name {
+  /* Long unbroken names must not push the actions column off screen. */
+  overflow-wrap: anywhere;
+  width: 100%;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.empty-state,
+.loading-state {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/*
+ * Narrow viewports: the table collapses into stacked cards, so the id/name/actions stay
+ * readable on a phone instead of scrolling sideways (FR-004).
+ */
+@media (max-width: 32rem) {
+  thead {
+    display: none;
+  }
+
+  tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody th,
+  tbody td {
+    border: 0;
+    padding: 0;
+  }
+
+  .item-actions {
+    grid-column: 1 / -1;
+    margin-top: 0.4rem;
+  }
+}
+
+/* --- edit dialog ---------------------------------------------------------------------- */
+
+dialog {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: var(--space);
+  max-width: min(28rem, 92vw);
+  width: 100%;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: var(--space);
+}
+
+.dialog-actions button[value='cancel'] {
+  background: var(--surface-muted);
+  color: var(--text);
+  border-color: var(--border);
+}

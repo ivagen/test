@@ -1,0 +1,18 @@
+parameters:
+    level: 6
+    paths:
+        - commands
+        - components
+        - controllers
+        - migrations
+        - models
+        - services
+        - tests
+    bootstrapFiles:
+        - tests/bootstrap.php
+    treatPhpDocTypesAsCertain: false
+
+    # No error is suppressed. Every finding the analyser reported was fixed in the code
+    # rather than hidden here -- an ignore list is where static analysis quietly stops
+    # being useful.
+    ignoreErrors: []

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         cacheDirectory=".phpunit.cache"
+         colors="true"
+         executionOrder="defects"
+         failOnRisky="true"
+         failOnWarning="true"
+         failOnNotice="true"
+         beStrictAboutOutputDuringTests="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnPhpunitDeprecations="true">
+    <testsuites>
+        <!-- Validation, event and helper behaviour. -->
+        <testsuite name="unit">
+            <directory>tests/unit</directory>
+        </testsuite>
+        <!-- Contract tests against the running HTTP API, migration preservation, worker. -->
+        <testsuite name="integration">
+            <directory>tests/integration</directory>
+        </testsuite>
+        <!-- Parity with the 2017 application's observable behaviour. -->
+        <testsuite name="legacy">
+            <directory>tests/legacy</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">commands</directory>
+            <directory suffix=".php">components</directory>
+            <directory suffix=".php">controllers</directory>
+            <directory suffix=".php">models</directory>
+            <directory suffix=".php">services</directory>
+        </include>
+    </source>
+</phpunit>

@@ -1,7 +1,0 @@
-# composer vendor dir
-/vendor
-/web/require/bower_components/
-/web/require/node_modules/
-/web/css/
-/web/fonts/
-/web/js/

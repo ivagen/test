@@ -1,64 +1,85 @@
 <?php
-/* @var $this yii\web\View */
-$this->title = 'List of things to rest';
+
+declare(strict_types=1);
+
+/**
+ * The single page.
+ *
+ * It renders only the static, accessible shell; the TypeScript client fills in the list and
+ * wires the interactions. There is no templating language embedded in attributes and no
+ * inline application logic -- the 2017 version carried an AngularJS `ng-controller`,
+ * `ng-repeat`, `{{row.name}}` interpolation and an `<script type="text/ng-template">`
+ * modal directly in this file.
+ *
+ * @var yii\web\View $this
+ */
+
+$this->title = 'Editable list';
 ?>
 
-<div class="container">
-    <div class="page-header">
-        <h1>List of things to rest</h1>
-    </div>
+<main class="app">
+    <h1>Editable list</h1>
 
-    <table class="table table-hover" ng-controller="ListController">
-        <thead>
-        <tr>
-            <th>#</th>
-            <th>Denomination</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr ng-repeat="row in rows">
-            <th scope="row">{{row.id}}</th>
-            <td>{{row.name}}</td>
-            <td>
-                <span class="glyphicon glyphicon-edit cursor-pointer" ng-click="edit(row.id, row.name)">&nbsp;</span>
-                <span class="glyphicon glyphicon-remove-circle cursor-pointer" ng-click="remove(row.id)">&nbsp;</span>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-</div>
+    <p id="realtime-status" class="status" role="status" data-state="connecting" data-realtime-state="connecting">
+        Connecting to live updates…
+    </p>
 
-<div class="container" ng-controller="PageController">
-    <a class="btn btn-default" href ng-click="show()">Add row</a>
-
-    <script type="text/ng-template" id="modal.html">
-        <div class="modal fade">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        <h4 class="modal-title">Add a new purchase</h4>
-                    </div>
-                    <form class="form-horizontal" ng-submit="submit()">
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label for="name" class="col-sm-2 control-label">Name</label>
-                                <div class="col-sm-10">
-                                    <input type="text" class="form-control" id="name" placeholder="Name"
-                                           ng-model="name" required>
-                                    <input type="hidden" ng-model="id">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <input type="submit" id="submit" class="btn btn-primary" value="{{action}}"/>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <form id="create-form" class="create-form" novalidate>
+        <div class="field">
+            <label for="create-name">New item</label>
+            <input
+                type="text"
+                id="create-name"
+                name="name"
+                maxlength="255"
+                autocomplete="off"
+                required
+                aria-describedby="create-error"
+            >
         </div>
-    </script>
-</div>
+        <button type="submit">Add item</button>
+        <p id="create-error" class="field-error" role="alert" hidden></p>
+    </form>
 
-<toaster-container toaster-options="{'time-out': 1000}"></toaster-container>
+    <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
+
+    <p id="loading-state" class="loading-state">Loading items…</p>
+
+    <table>
+        <caption class="visually-hidden">Items, ordered by id</caption>
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="items-body"></tbody>
+    </table>
+
+    <p id="empty-state" class="empty-state" hidden>No items yet. Add the first one above.</p>
+</main>
+
+<dialog id="edit-dialog" aria-labelledby="edit-dialog-title">
+    <h2 id="edit-dialog-title">Rename item</h2>
+    <form id="edit-form" novalidate>
+        <div class="field">
+            <label for="edit-name">Name</label>
+            <input
+                type="text"
+                id="edit-name"
+                name="name"
+                maxlength="255"
+                autocomplete="off"
+                required
+                aria-describedby="edit-error"
+            >
+        </div>
+        <p id="edit-error" class="field-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+            <?php // Wired up in frontend/src/ui.ts: an inline onclick would need a CSP 'unsafe-inline' escape hatch. ?>
+            <button type="button" id="edit-cancel" value="cancel">Cancel</button>
+            <button type="submit">Save</button>
+        </div>
+    </form>
+</dialog>

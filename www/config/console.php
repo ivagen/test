@@ -1,25 +1,22 @@
 <?php
 
-$params = require(__DIR__ . '/params.php');
+declare(strict_types=1);
 
-return [
-    'id' => 'minimal-console',
-    'basePath' => dirname(__DIR__),
+use yii\helpers\ArrayHelper;
+
+$common = require __DIR__ . '/common.php';
+
+return ArrayHelper::merge($common, [
+    'id' => 'editable-list-console',
     'bootstrap' => ['log'],
     'controllerNamespace' => 'app\commands',
-    'components' => [
-        'cache' => [
-            'class' => 'yii\caching\FileCache',
+    'controllerMap' => [
+        'migrate' => [
+            'class' => yii\console\controllers\MigrateController::class,
+            // The original migration lives in www/migrations/ and is NEVER re-created or
+            // renamed: preserving it is what proves legacy rows survive (FR-001).
+            'migrationPath' => '@app/migrations',
+            'migrationTable' => 'migration',
         ],
-        'log' => [
-            'targets' => [
-                [
-                    'class' => 'yii\log\FileTarget',
-                    'levels' => ['error', 'warning'],
-                ],
-            ],
-        ],
-        'db' => require(__DIR__ . '/db.php'),
     ],
-    'params' => $params,
-];
+]);

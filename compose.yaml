@@ -1,0 +1,188 @@
+# Editable List -- local development and acceptance stack.
+#
+# Current Compose specification: no obsolete top-level `version:` key, no `links:`, no
+# fixed `container_name:`. Every image is pinned by tag AND digest (research.md), and the
+# reverse proxy is the ONLY service that reaches the host (SC-006, Constitution IV).
+#
+#   cp .env.example .env && docker compose up -d
+#
+# Reset (destroys THIS project's database volume only):  docker compose down --volumes
+
+name: editable-list
+
+x-app-environment: &app-environment
+  APP_ENV: ${APP_ENV:-dev}
+  APP_COOKIE_VALIDATION_KEY: ${APP_COOKIE_VALIDATION_KEY:?set APP_COOKIE_VALIDATION_KEY in .env}
+  DB_HOST: ${DB_HOST:-postgres}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_NAME: ${POSTGRES_DB:-app}
+  DB_USER: ${POSTGRES_USER:-app}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_DB: ${REDIS_DB:-0}
+  REALTIME_CHANNEL: ${REALTIME_CHANNEL:-items.events}
+  REALTIME_WS_PORT: ${REALTIME_WS_PORT:-8080}
+  REALTIME_HEALTH_PORT: ${REALTIME_HEALTH_PORT:-8081}
+
+x-php-build: &php-build
+  context: .
+  dockerfile: docker/php/Dockerfile
+
+services:
+  # ---------------------------------------------------------------------------------------
+  # Reverse proxy -- the single published entrypoint
+  # ---------------------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.31.2-alpine3.23@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa
+    restart: unless-stopped
+    ports:
+      # Host port is configurable so an occupied 8080 never blocks a developer.
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./www/web:/var/www/web:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    # Deliberately NOT dependent on `websocket`: a real-time outage must never take down
+    # plain CRUD (FR-007).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/nginx-health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    stop_grace_period: 10s
+
+  # ---------------------------------------------------------------------------------------
+  # HTTP application (php-fpm)
+  # ---------------------------------------------------------------------------------------
+  app:
+    build: *php-build
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+      # Only this service installs into the shared vendor volume.
+      VENDOR_SYNC: "1"
+    volumes:
+      - ./www:/var/www
+      - php-vendor:/var/www/vendor
+      # Read-only, and only so the contract test can validate the running API against the
+      # OpenAPI document itself rather than against a copy that could drift from it.
+      # Outside web/, so nginx never serves it.
+      - ./contracts:/var/www/contracts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Exercises the real dependencies: php-fpm's socket, PostgreSQL and Redis. It fails
+      # when any of them is genuinely unavailable, rather than reporting a false healthy.
+      test: ["CMD", "php", "/var/www/yii", "health/check"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
+    stop_grace_period: 10s
+
+  # ---------------------------------------------------------------------------------------
+  # Real-time worker (Workerman) -- replaces PHPDaemon
+  # ---------------------------------------------------------------------------------------
+  websocket:
+    build: *php-build
+    restart: unless-stopped
+    # No privileged port is needed here, so this container runs entirely unprivileged.
+    user: "www-data"
+    command: ["php", "/var/www/yii", "realtime/start"]
+    environment: *app-environment
+    volumes:
+      - ./www:/var/www
+      - php-vendor:/var/www/vendor
+    depends_on:
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    healthcheck:
+      # An explicit short stream timeout, so a wedged worker fails the check quickly
+      # instead of hanging until PHP's 60-second default socket timeout.
+      test: ["CMD", "php", "-r", "$$c = stream_context_create(['http' => ['timeout' => 3, 'header' => 'Connection: close']]); exit(@file_get_contents('http://127.0.0.1:' . (getenv('REALTIME_HEALTH_PORT') ?: '8081') . '/health', false, $$c) === 'ok' ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Long enough for Workerman to close every client socket on SIGTERM.
+    stop_grace_period: 15s
+
+  # ---------------------------------------------------------------------------------------
+  # PostgreSQL -- source of truth, internal only, persistent
+  # ---------------------------------------------------------------------------------------
+  postgres:
+    image: postgres:17.10-alpine3.24@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      # Deterministic collation for the ascending-id ordering and Unicode names.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    # Fast, clean shutdown without risking an unclean stop of an in-flight checkpoint.
+    stop_grace_period: 30s
+
+  # ---------------------------------------------------------------------------------------
+  # Redis -- transient pub/sub fan-out only, never a source of truth, internal only
+  # ---------------------------------------------------------------------------------------
+  redis:
+    image: redis:8.8.1-alpine3.23@sha256:8096655e437712b07503796fb64d81359256cfcff0ab29d95a7da72863786efb
+    restart: unless-stopped
+    # No AOF, no RDB: losing every byte in Redis must be a non-event.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    stop_grace_period: 10s
+
+  # ---------------------------------------------------------------------------------------
+  # Frontend tooling -- builds assets, then hosts lint/typecheck/unit/e2e commands
+  # ---------------------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    restart: unless-stopped
+    environment:
+      E2E_BASE_URL: ${E2E_BASE_URL:-http://nginx}
+      BUILD_ON_START: ${BUILD_ON_START:-1}
+      # Vite writes the bundle straight into the directory nginx serves.
+      VITE_OUT_DIR: /assets/app
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - ./www/web/assets:/assets
+    healthcheck:
+      # Healthy only once the browser bundle actually exists, so "all services healthy"
+      # really does mean the page will render.
+      test: ["CMD-SHELL", "test -f /assets/app/.vite/manifest.json"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+    stop_grace_period: 5s
+
+volumes:
+  postgres-data:
+  php-vendor:
+  frontend-node-modules:

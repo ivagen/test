@@ -1,48 +1,61 @@
 {
-    "name": "samdark/yii2-minimal",
-    "description": "Yii 2 minimal Application Template",
-    "keywords": ["yii", "framework", "minimal", "application template"],
-    "homepage": "https://github.com/samdark/yii2-minimal",
+    "name": "editable-list/app",
+    "description": "Editable list: a small Yii 2 application with a REST API and same-origin real-time updates",
     "type": "project",
     "license": "BSD-3-Clause",
-    "support": {
-        "issues": "https://github.com/samdark/yii2-minimal/issues?state=open",
-        "source": "https://github.com/samdark/yii2-minimal"
-    },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "require": {
-        "yiisoft/yii2": "~2.0.7",
-        "predis/predis": "^1.1",
-        "yiisoft/yii2-redis": "^2.0",
-        "fxp/composer-asset-plugin": "~1"
+        "php": "~8.4.0",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-pcntl": "*",
+        "ext-pdo": "*",
+        "ext-pdo_pgsql": "*",
+        "workerman/redis": "^2.0.6",
+        "workerman/workerman": "^5.2.2",
+        "yiisoft/yii2": "~2.0.55",
+        "yiisoft/yii2-redis": "~2.1.2"
     },
-    "config": {
-        "process-timeout": 1800
-    },
-    "scripts": {
-        "post-create-project-cmd": [
-            "yii\\composer\\Installer::postCreateProject"
-        ]
-    },
-    "extra": {
-        "yii\\composer\\Installer::postCreateProject": {
-                "setPermission": [
-                    {
-                        "runtime": "0777",
-                        "web/assets": "0777",
-                        "yii": "0755"
-                    }
-                ],
-                "generateCookieValidationKey": [
-                    "config/web.php"
-                ]
-            },
-            "asset-installer-paths": {
-                "npm-asset-library": "vendor/npm",
-                "bower-asset-library": "vendor/bower"
-            }
+    "replace": {
+        "bower-asset/inputmask": "*",
+        "bower-asset/jquery": "*",
+        "bower-asset/punycode": "*",
+        "bower-asset/yii2-pjax": "*"
     },
     "require-dev": {
-        "yiisoft/yii2-gii": "^2.0"
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^13.2",
+        "symfony/yaml": "^7.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "app\\": ""
+        },
+        "exclude-from-classmap": [
+            "/tests/",
+            "/migrations/"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "analyse": "phpstan analyse --no-progress",
+        "style": "php-cs-fixer check --diff",
+        "style:fix": "php-cs-fixer fix"
+    },
+    "scripts-descriptions": {
+        "test": "Run every backend test suite (unit, integration/contract, legacy parity)",
+        "analyse": "Run PHPStan static analysis",
+        "style": "Check coding style without modifying files"
     }
 }

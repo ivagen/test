@@ -1,204 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\controllers;
 
-use Yii;
 use yii\web\Controller;
-use app\models\Items;
-use yii\web\NotFoundHttpException;
-use yii\web\Response;
-use yii\filters\VerbFilter;
 
-class SiteController extends Controller
+/**
+ * Serves the single page and the HTML error view.
+ *
+ * All item behaviour moved to {@see ApiItemController}. Per FR-015 and the T034 decision
+ * recorded in README.md, the legacy `index.php?r=site/get|create|update|delete` routes are
+ * REMOVED rather than kept as an adapter: they carried no business logic of their own, had
+ * no external consumer, and keeping CSRF-exempt mutation endpoints alive purely for
+ * nostalgia would undermine FR-010.
+ */
+final class SiteController extends Controller
 {
-    public $enableCsrfValidation = false;
-
-    public function behaviors()
-    {
-        return [
-            'verbs' => [
-                'class'   => VerbFilter::className(),
-                'actions' => [
-                    'delete' => ['delete'],
-                    'create' => ['post'],
-                    'update' => ['put'],
-                ],
-            ],
-        ];
-    }
-
-    public function actions()
+    /**
+     * @return array<string, array<string, string>>
+     */
+    public function actions(): array
     {
         return [
             'error' => [
-                'class' => 'yii\web\ErrorAction',
+                'class' => \yii\web\ErrorAction::class,
             ],
         ];
     }
 
-    /**
-     * @return string
-     */
-    public function actionIndex()
+    public function actionIndex(): string
     {
         return $this->render('index');
-    }
-
-    /**
-     * @return array
-     */
-    public function actionGet()
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        try {
-            return $this->getItems();
-        } catch (\Exception $exception) {
-            Yii::$app->response->setStatusCode(500);
-
-            return [
-                'error' => 'Unknown error',
-            ];
-        }
-    }
-
-    /**
-     * Creates a new Items model.
-     *
-     * @return mixed
-     */
-    public function actionCreate()
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        try {
-            $model = new Items;
-
-            if ($model->load(Yii::$app->request->post()) && $model->save() && $this->getItems()) {
-
-                Yii::$app->response->setStatusCode(201);
-
-                return [
-                    'id' => $model->id,
-                ];
-            }
-
-            Yii::$app->response->setStatusCode(400);
-
-            return [
-                'error' => $model->getFirstErrors(),
-            ];
-        } catch (\Exception $exception) {
-            Yii::$app->response->setStatusCode(500);
-
-            return [
-                'error' => 'Unknown error',
-            ];
-        }
-    }
-
-    /**
-     * Updates an existing Items model.
-     *.
-     * @param integer $id
-     * @return mixed
-     */
-    public function actionUpdate($id)
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        try {
-            $model = $this->findModel($id);
-
-            if ($model->load(Yii::$app->request->post()) && $model->save() && $this->getItems()) {
-                Yii::$app->response->setStatusCode(200);
-
-                return [
-                    'id' => $model->id,
-                ];
-            }
-
-            Yii::$app->response->setStatusCode(400);
-
-            return [
-                'error' => $model->getFirstErrors(),
-            ];
-        } catch (NotFoundHttpException $exception) {
-            Yii::$app->response->setStatusCode(404);
-
-            return [
-                'error' => $exception->getMessage(),
-            ];
-        } catch (\Exception $exception) {
-            Yii::$app->response->setStatusCode(500);
-
-            return [
-                'error' => 'Unknown error',
-            ];
-        }
-    }
-
-    /**
-     * Deletes an existing Items model.
-     *
-     * @param integer $id
-     * @return array
-     */
-    public function actionDelete($id)
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        try {
-            $this->findModel($id)->delete();
-            $this->getItems();
-
-            Yii::$app->response->setStatusCode(204);
-
-            return [];
-        } catch (NotFoundHttpException $exception) {
-            Yii::$app->response->setStatusCode(404);
-
-            return [
-                'error' => $exception->getMessage(),
-            ];
-        } catch (\Exception $exception) {
-            Yii::$app->response->setStatusCode(500);
-
-            return [
-                'error' => 'Unknown error',
-            ];
-        }
-    }
-
-    /**
-     * Finds the Items model based on its primary key value.
-     *
-     * @param integer $id
-     * @return Items
-     * @throws NotFoundHttpException
-     */
-    protected function findModel($id)
-    {
-        if (($model = Items::findOne($id)) !== null) {
-            return $model;
-        } else {
-            throw new NotFoundHttpException('The requested page does not exist.');
-        }
-    }
-
-    /**
-     * Return all items and save it in redis
-     *
-     * @return array
-     */
-    protected function getItems()
-    {
-        $items = [
-            'rows' => Items::find()->orderBy('id')->asArray()->all(),
-        ];
-
-        Yii::$app->redis->set('data', json_encode($items));
-
-        return $items;
     }
 }
